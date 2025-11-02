@@ -2,6 +2,7 @@ import numpy as np
 
 from rlkit.data_management.simple_replay_buffer import SimpleReplayBuffer
 from gym.spaces import Box, Discrete, Tuple
+from gymnasium.spaces import Box as NewBox
 
 
 class MultiTaskReplayBuffer(object):
@@ -62,6 +63,8 @@ class MultiTaskReplayBuffer(object):
 def get_dim(space):
     if isinstance(space, Box):
         return space.low.size
+    elif isinstance(space, NewBox):
+        return np.prod(space.shape[1:])
     elif isinstance(space, Discrete):
         return space.n
     elif isinstance(space, Tuple):

@@ -23,15 +23,10 @@ from configs.default import default_config
 def experiment(variant):
 
     # create multi-task environment and sample tasks
-    # IsaacLab环境的action空间上下界是inf，NormalizeBoxEnv返回的动作会变成nan
-    # Peg-insertion任务的动作空间是相对值，pos_bound=[0.05], rot_bound=[1]
-    # 可以不使用NormalizedBoxEnv包装环境
-    # env = NormalizedBoxEnv(ENVS[variant['env_name']](**variant['env_params']))
-    env = ENVS[variant['env_name']](**variant['env_params'])
+    env = NormalizedBoxEnv(ENVS[variant['env_name']](**variant['env_params']))
     tasks = env.get_all_task_idx()
-    # 排除num_envs维度的影响，计算单个环境的obs和action维度
-    obs_dim = int(np.prod(env.observation_space.shape[1:]))
-    action_dim = int(np.prod(env.action_space.shape[1:]))
+    obs_dim = int(np.prod(env.observation_space.shape))
+    action_dim = int(np.prod(env.action_space.shape))
     reward_dim = 1
 
     # instantiate networks

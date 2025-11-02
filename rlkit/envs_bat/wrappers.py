@@ -1,7 +1,7 @@
 import numpy as np
 from gym import Env
 from gym.spaces import Box
-# import mujoco_py
+import mujoco_py
 
 from rlkit.core.serializable import Serializable
 
@@ -104,10 +104,6 @@ class NormalizedBoxEnv(ProxyEnv, Serializable):
         self._reward_scale = d["_reward_scale"]
 
     def step(self, action):
-        #TODO: IsaacLab环境的动作空间上下界是（-inf， inf）
-        # 归一化后会从有意义的值变为全nan
-        # 原始值范围可能就是在[-1, 1]之间
-        # 查看IsaacLab的默认动作空间设置
         lb = self._wrapped_env.action_space.low
         ub = self._wrapped_env.action_space.high
         scaled_action = lb + (action + 1.) * 0.5 * (ub - lb)
@@ -132,29 +128,29 @@ class NormalizedBoxEnv(ProxyEnv, Serializable):
         return getattr(self._wrapped_env, attrname)
 
 
-# class CameraWrapper(object):
+class CameraWrapper(object):
 
-#     def __init__(self, env,  *args, **kwargs):
-#         self._wrapped_env = env
-#         self.initialize_camera()
+    def __init__(self, env,  *args, **kwargs):
+        self._wrapped_env = env
+        self.initialize_camera()
 
-#     def get_image(self, width=256, height=256, camera_name=None):
-#         # use sim.render to avoid MJViewer which doesn't seem to work without display
-#         return self.sim.render(
-#             width=width,
-#             height=height,
-#             camera_name=camera_name,
-#         )
+    def get_image(self, width=256, height=256, camera_name=None):
+        # use sim.render to avoid MJViewer which doesn't seem to work without display
+        return self.sim.render(
+            width=width,
+            height=height,
+            camera_name=camera_name,
+        )
 
-#     def initialize_camera(self):
-#         # set camera parameters for viewing
-#         sim = self.sim
-#         viewer = mujoco_py.MjRenderContextOffscreen(sim)
-#         camera = viewer.cam
-#         camera.type = 1
-#         camera.trackbodyid = 0
-#         camera.elevation = -20
-#         sim.add_render_context(viewer)
+    def initialize_camera(self):
+        # set camera parameters for viewing
+        sim = self.sim
+        viewer = mujoco_py.MjRenderContextOffscreen(sim)
+        camera = viewer.cam
+        camera.type = 1
+        camera.trackbodyid = 0
+        camera.elevation = -20
+        sim.add_render_context(viewer)
 
-#     def __getattr__(self, attrname):
-#         return getattr(self._wrapped_env, attrname)
+    def __getattr__(self, attrname):
+        return getattr(self._wrapped_env, attrname)

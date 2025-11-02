@@ -156,6 +156,7 @@ class MetaRLAlgorithm(metaclass=abc.ABCMeta):
             self._start_epoch(it_)
             self.training_mode(True)
             if it_ == 0:
+                #TODO: 运行时间很长，到时候检查
                 print('collecting initial pool of data for train and eval')
                 # temp for evaluating
                 for idx in self.train_tasks:
@@ -215,7 +216,10 @@ class MetaRLAlgorithm(metaclass=abc.ABCMeta):
         self.agent.clear_z()
 
         num_transitions = 0
+        start_time = time.time()
+        print(f"[collect_data] 开始采样，共需 {num_samples} 个样本...")
         while num_transitions < num_samples:
+            print(f"num_transitions = {num_transitions}")
             paths, n_samples = self.sampler.obtain_samples(max_samples=num_samples - num_transitions,
                                                                 max_trajs=update_posterior_rate,
                                                                 accum_context=False,
@@ -227,6 +231,10 @@ class MetaRLAlgorithm(metaclass=abc.ABCMeta):
             if update_posterior_rate != np.inf:
                 context = self.sample_context(self.task_idx)
                 self.agent.infer_posterior(context)
+
+        elapsed = time.time() - start_time
+        print(f"[collect_data] 完成采样，总计 {num_transitions} 个样本，用时 {elapsed:.2f} 秒 ({elapsed/60:.2f} 分钟)")
+
         self._n_env_steps_total += num_transitions
         gt.stamp('sample')
 
