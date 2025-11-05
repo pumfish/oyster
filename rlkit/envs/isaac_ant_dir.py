@@ -11,21 +11,20 @@ import gymnasium as gym
 
 from . import register_env
 
-@register_env('isaac-peg-insertion')
-class IsaacPegWrapper(gym.Env):
+@register_env('isaac-ant-dir')
+class IsaacAntWrapper(gym.Env):
     """
     Wrapper for IsaacLab Peg-insertion task, compatible with Gymnasium.
     """
 
     def __init__(
             self,
-            task_name="Isaac-Factory-PegInsert-Direct-v0",
+            task_name="Isaac-Ant-Direct-v0",
             device=None,
             task={},
             n_tasks=2,
             **kwargs
         ):
-        self.device = device or torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         from isaaclab.app import AppLauncher
 
@@ -36,6 +35,8 @@ class IsaacPegWrapper(gym.Env):
         import isaaclab_tasks  # noqa: F401
         from isaaclab_tasks.utils import load_cfg_from_registry
 
+
+        self.device = device or torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         # 加载环境配置
         self.cfg = load_cfg_from_registry(task_name, "env_cfg_entry_point")
@@ -67,6 +68,7 @@ class IsaacPegWrapper(gym.Env):
         # 接受Pearl的输入
         if not isinstance(action, torch.Tensor):
             action = torch.as_tensor(action, device=self.device)
+            action = action.unsqueeze(0)
         obs, reward, done, truncated, info = self.env.step(action)
         # Tensor -> numpy (兼容Pearl)
         pearl_obs = obs['policy'].cpu().numpy().squeeze()
@@ -90,7 +92,8 @@ class IsaacPegWrapper(gym.Env):
 
     def sample_tasks(self, num_tasks):
         # 返回所有任务的目标位置，按照[dict(), dict(), ...]的格式返回数据
-        goal_pos = self.env.env.target_held_base_pos
+        # Locomotion基类的目标信息都是用target访问
+        goal_pos = self.env.env.targets
         goal_pos = goal_pos.cpu().numpy()
         tasks = [{'goal': goal_pos} for _ in range(num_tasks)]
         return tasks
@@ -104,8 +107,9 @@ class IsaacPegWrapper(gym.Env):
 
 # 测试环境类
 if __name__ == "__main__":
-    print("🚀 初始化 Isaac Peg 环境...")
-    env = IsaacPegWrapper()
+    print("🚀 初始化 Isaac Ant-dir 环境...")
+    env = IsaacAntWrapper()
+    breakpoint()
 
     # 打印空间信息
     print("✅ Action space:", env.action_space)

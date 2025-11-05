@@ -11,21 +11,20 @@ import gymnasium as gym
 
 from . import register_env
 
-@register_env('isaac-peg-insertion')
-class IsaacPegWrapper(gym.Env):
+@register_env('isaac-grasp')
+class IsaacGraspWrapper(gym.Env):
     """
-    Wrapper for IsaacLab Peg-insertion task, compatible with Gymnasium.
+    Wrapper for IsaacLab Grasp task, compatible with Gymnasium.
     """
 
     def __init__(
             self,
-            task_name="Isaac-Factory-PegInsert-Direct-v0",
+            task_name="Isaac-Grasp-Cube-Franka-DR",
             device=None,
             task={},
             n_tasks=2,
             **kwargs
         ):
-        self.device = device or torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         from isaaclab.app import AppLauncher
 
@@ -37,6 +36,8 @@ class IsaacPegWrapper(gym.Env):
         from isaaclab_tasks.utils import load_cfg_from_registry
 
 
+        self.device = device or torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
         # 加载环境配置
         self.cfg = load_cfg_from_registry(task_name, "env_cfg_entry_point")
         self.cfg.scene.num_envs = 1  # 单环境设置, agent.py要和z合并，所以应该只支持环境数为1
@@ -47,7 +48,7 @@ class IsaacPegWrapper(gym.Env):
 
         # 保留动作和观测空间
         self.action_space = self.env.action_space
-        self.observation_space = self.env.observation_space
+        self.observation_space = self.env.observation_space["policy"]
 
         # Pearl 相关属性
         self._task = task
@@ -67,6 +68,7 @@ class IsaacPegWrapper(gym.Env):
         # 接受Pearl的输入
         if not isinstance(action, torch.Tensor):
             action = torch.as_tensor(action, device=self.device)
+            action = action.unsqueeze(0)
         obs, reward, done, truncated, info = self.env.step(action)
         # Tensor -> numpy (兼容Pearl)
         pearl_obs = obs['policy'].cpu().numpy().squeeze()
@@ -90,7 +92,8 @@ class IsaacPegWrapper(gym.Env):
 
     def sample_tasks(self, num_tasks):
         # 返回所有任务的目标位置，按照[dict(), dict(), ...]的格式返回数据
-        goal_pos = self.env.env.target_held_base_pos
+        #TODO: 物体的初始位置作为目标不太恰当
+        goal_pos = self.env.env.scene['object'].data.root_pos_w
         goal_pos = goal_pos.cpu().numpy()
         tasks = [{'goal': goal_pos} for _ in range(num_tasks)]
         return tasks
@@ -104,8 +107,9 @@ class IsaacPegWrapper(gym.Env):
 
 # 测试环境类
 if __name__ == "__main__":
-    print("🚀 初始化 Isaac Peg 环境...")
-    env = IsaacPegWrapper()
+    print("🚀 初始化 Isaac-Grasp-dir 环境...")
+    env = IsaacGraspWrapper()
+    breakpoint()
 
     # 打印空间信息
     print("✅ Action space:", env.action_space)
